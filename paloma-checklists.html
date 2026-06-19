@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<meta name="theme-color" content="#ff69b4">
+<title>🕊️ Paloma Checklists</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;background:#0d0618;font-family:system-ui,sans-serif;color:#f0d6ff}
+.pf{font-family:'Press Start 2P',monospace!important}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:#0d0618}::-webkit-scrollbar-thumb{background:#ff69b4;border-radius:3px}
+@keyframes lp{0%,100%{border-color:#ff0055;box-shadow:0 0 18px #ff005566}16%{border-color:#ff8c00;box-shadow:0 0 18px #ff8c0066}33%{border-color:#ffd700;box-shadow:0 0 18px #ffd70066}50%{border-color:#00ff88;box-shadow:0 0 18px #00ff8866}66%{border-color:#0099ff;box-shadow:0 0 18px #0099ff66}83%{border-color:#cc00ff;box-shadow:0 0 18px #cc00ff66}}
+@keyframes fly{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes flipIn{from{transform:rotateY(90deg);opacity:0}to{transform:rotateY(0);opacity:1}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.legend-card{animation:lp 3s ease-in-out infinite,fly 3s ease-in-out infinite}
+.flip-in{animation:flipIn .45s ease-out both}.fade-up{animation:fadeUp .3s ease-out both}.blink{animation:pulse 1.2s ease-in-out infinite}
+.btn{font-family:'Press Start 2P',monospace;font-size:9px;border-radius:8px;cursor:pointer;transition:all .15s;padding:10px 18px;border:none;color:#fff;background:linear-gradient(135deg,#ff69b4,#c084fc)}
+.btn:hover{opacity:.88;transform:translateY(-1px)}.btn:disabled{opacity:.3;cursor:not-allowed;transform:none}
+.btn-o{background:transparent;border:1px solid #ff69b466;color:#ff69b4;font-family:'Press Start 2P',monospace;font-size:8px;border-radius:8px;cursor:pointer;padding:8px 14px;transition:all .15s}
+.btn-o:hover{border-color:#ff69b4;background:#ff69b411}
+.btn-d{background:transparent;border:1px solid #f8717133;color:#f87171;font-family:'Press Start 2P',monospace;font-size:7px;border-radius:8px;cursor:pointer;padding:7px 12px}
+.btn-g{background:transparent;border:1px solid #4ade8033;color:#4ade80;font-family:'Press Start 2P',monospace;font-size:7px;border-radius:8px;cursor:pointer;padding:7px 12px}
+.inp{background:#120920;border:1px solid #ff69b444;border-radius:8px;color:#f0d6ff;padding:9px 13px;font-size:13px;width:100%;outline:none;transition:border-color .2s;font-family:inherit}
+.inp:focus{border-color:#ff69b4}.inp::placeholder{color:#fff2}
+select.inp{cursor:pointer}textarea.inp{resize:vertical;min-height:70px}
+.ns{background:transparent;border:none;cursor:pointer;font-family:'Press Start 2P',monospace;font-size:8px;padding:10px 12px;border-radius:8px;color:#c084fc;transition:all .15s;width:100%;text-align:left;display:flex;align-items:center;gap:9px}
+.ns:hover{background:#ff69b411;color:#ff69b4}.ns.on{background:linear-gradient(135deg,#ff69b4,#c084fc);color:#fff}
+.nm{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;background:none;border:none;cursor:pointer;font-family:'Press Start 2P',monospace;font-size:5px;color:#8b5cf6;transition:color .15s}
+.nm.on,.nm:hover{color:#ff69b4}
+.overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:#0d061888;backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:500;padding:16px}
+@media(min-width:720px){.snav{display:flex!important;flex-direction:column;gap:3px}.bnav{display:none!important}.mpb{padding-bottom:16px!important}}
+@media(max-width:719px){.snav{display:none!important}.bnav{display:flex!important;justify-content:space-around;padding:4px 0}.mpb{padding-bottom:70px!important}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ─── FIREBASE CONFIG ───────────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyAcB5AxH1ggbDDsV_5o9SBR8ZWWgsE03h8",
+  authDomain: "palomachecklists.firebaseapp.com",
+  databaseURL: "https://palomachecklists-default-rtdb.firebaseio.com",
+  projectId: "palomachecklists",
+  storageBucket: "palomachecklists.firebasestorage.app",
+  messagingSenderId: "938592793142",
+  appId: "1:938592793142:web:5ab8261801241714c79e97"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const DB_REF = db.ref('gamedata');
+
+// ─── CONSTANTS ─────────────────────────────────────────────────────────────
+const USERS={julia:{pw:'Paloma1997',name:'Julia',c:'#ff69b4'},jesus:{pw:'Paloma2003',name:'Jesús',c:'#a78bfa'}};
+const APW='CacaAzucarada2.';
+const PTS=[5,10,15,20,25,30,35,40,45,50];
+const NAV=[{id:'checklist',ic:'✅',lbl:'Checklist'},{id:'tienda',ic:'🛍️',lbl:'Tienda'},{id:'coleccion',ic:'🃏',lbl:'Colección'},{id:'intercambios',ic:'🔄',lbl:'Cambios'},{id:'otro',ic:'💌',lbl:'Mi ½ 🍊'},{id:'album',ic:'📚',lbl:'Álbum'}];
+const R={
+  comun:{lbl:'Común',b:'#6b7280',bg:'#0d0d1a',tc:'#9ca3af',glow:''},
+  poco_comun:{lbl:'Poco Común',b:'#38bdf8',bg:'#02101e',tc:'#38bdf8',glow:'0 0 12px #38bdf855'},
+  rara:{lbl:'Rara',b:'#4ade80',bg:'#021008',tc:'#4ade80',glow:'0 0 12px #4ade8055'},
+  epica:{lbl:'Épica',b:'#c084fc',bg:'#0d0118',tc:'#c084fc',glow:'0 0 18px #c084fc88'},
+  legendaria:{lbl:'Legendaria',b:'#ff69b4',bg:'#100900',tc:'#fbbf24',glow:'',anim:true}
+};
+const SOBRES={
+  comun:{lbl:'Sobre Común',cost:100,n:3,icon:'📦',bc:'#6b7280',gr:'linear-gradient(135deg,#1f2937,#6b7280)',probs:{comun:50,poco_comun:30,rara:15,epica:4,legendaria:1}},
+  raro:{lbl:'Sobre Raro',cost:200,n:4,icon:'💠',bc:'#38bdf8',gr:'linear-gradient(135deg,#0369a1,#38bdf8)',probs:{comun:20,poco_comun:30,rara:30,epica:15,legendaria:5}},
+  mega:{lbl:'Megasobre ✨',cost:300,n:5,icon:'🌟',bc:'#fbbf24',gr:'linear-gradient(135deg,#92400e,#fbbf24)',probs:{comun:15,poco_comun:20,rara:25,epica:25,legendaria:15},epic:true}
+};
+const SND_DEFS=[['bgMusic','🎵 Música de fondo (bucle)'],['addTask','✅ Añadir tarea'],['completeTask','✓ Completar tarea'],['requestTrade','📤 Enviar intercambio'],['acceptTrade','🤝 Aceptar intercambio'],['openPack','📦 Abrir sobre'],['comun','⬜ Revelar carta Común'],['poco_comun','💙 Revelar carta Poco Común'],['rara','💚 Revelar carta Rara'],['epica','💜 Revelar carta Épica'],['legendaria','⭐ Revelar carta Legendaria']];
+
+// ─── STATE ─────────────────────────────────────────────────────────────────
+let S={user:null,page:'checklist',db:null,timer:'--:--:--',selPts:10,pack:null,inspect:null,myCard:null,thCard:null,rarFilt:'all',adminEditId:null,showImport:false,adminRarity:'comun',muted:false,loading:true};
+
+// ─── UTILS ─────────────────────────────────────────────────────────────────
+function uid(){return Math.random().toString(36).slice(2,10)}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function canaryDate(){try{return new Intl.DateTimeFormat('sv-SE',{timeZone:'Atlantic/Canary',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())}catch{return new Date().toISOString().slice(0,10)}}
+function calcTimer(){
+  try{
+    const pts=new Intl.DateTimeFormat('en-US',{timeZone:'Atlantic/Canary',hour:'numeric',minute:'numeric',second:'numeric',hour12:false}).formatToParts(new Date());
+    const h=+pts.find(p=>p.type==='hour').value,m=+pts.find(p=>p.type==='minute').value,sv=+pts.find(p=>p.type==='second').value;
+    const cur=h*3600+m*60+sv,rst=23*3600+59*60,d=cur<=rst?rst-cur:86400-cur+rst;
+    return[Math.floor(d/3600),Math.floor(d%3600/60),d%60].map(x=>String(x).padStart(2,'0')).join(':');
+  }catch{return'--:--:--'}
+}
+function pickR(probs){const r=Math.random()*100;let c=0;for(const[k,v]of Object.entries(probs)){c+=v;if(r<c)return k}return'comun'}
+function rollPack(type,pool){
+  if(!pool||!pool.length)return[];
+  const cfg=SOBRES[type],drawn=[];
+  for(let i=0;i<cfg.n;i++){
+    const rar=pickR(cfg.probs),cands=pool.filter(c=>c.rarity===rar);
+    drawn.push((cands.length?cands:pool)[Math.floor(Math.random()*(cands.length?cands:pool).length)]);
+  }
+  if(cfg.epic){
+    const hasEpic=drawn.some(c=>c.rarity==='epica'||c.rarity==='legendaria');
+    if(!hasEpic){
+      let ep=pool.filter(c=>c.rarity==='epica'||c.rarity==='legendaria');
+      if(!ep.length)ep=pool.filter(c=>c.rarity==='rara');
+      if(!ep.length)ep=pool;
+      drawn[drawn.length-1]=ep[Math.floor(Math.random()*ep.length)];
+    }
+  }
+  return drawn;
+}
+function initDB(){return{lastReset:canaryDate(),julia:{pts:0,tasks:[],col:{}},jesus:{pts:0,tasks:[],col:{}},cards:[],trades:[],sounds:{}}}
+function ud(){return S.db[S.user]}
+function other(){return S.user==='julia'?'jesus':'julia'}
+
+// ─── FIREBASE STORAGE ──────────────────────────────────────────────────────
+function save(){
+  DB_REF.set(S.db).catch(e=>console.error('Firebase save error:',e));
+}
+
+function startSync(){
+  DB_REF.on('value', snapshot=>{
+    const data=snapshot.val();
+    if(!data){
+      S.db=initDB();
+      save();
+    }else{
+      // Migrate missing fields
+      if(!data.julia)data.julia={pts:0,tasks:[],col:{}};
+      if(!data.jesus)data.jesus={pts:0,tasks:[],col:{}};
+      if(!data.cards)data.cards=[];
+      if(!data.trades)data.trades=[];
+      if(!data.sounds)data.sounds={};
+      // Arrays from Firebase come as objects, convert back
+      if(data.julia.tasks&&!Array.isArray(data.julia.tasks))data.julia.tasks=Object.values(data.julia.tasks);
+      if(data.jesus.tasks&&!Array.isArray(data.jesus.tasks))data.jesus.tasks=Object.values(data.jesus.tasks);
+      if(data.cards&&!Array.isArray(data.cards))data.cards=Object.values(data.cards);
+      if(data.trades&&!Array.isArray(data.trades))data.trades=Object.values(data.trades);
+      // Check daily reset
+      const today=canaryDate();
+      if(data.lastReset!==today){
+        data.lastReset=today;
+        data.julia.tasks=(data.julia.tasks||[]).map(t=>({...t,done:false}));
+        data.jesus.tasks=(data.jesus.tasks||[]).map(t=>({...t,done:false}));
+      }
+      S.db=data;
+    }
+    if(S.loading){S.loading=false;}
+    render();
+  });
+}
+
+// ─── SOUNDS ────────────────────────────────────────────────────────────────
+let bgAudio=null;
+function playSound(key){
+  if(S.muted)return;
+  const url=(S.db.sounds||{})[key];
+  if(!url)return;
+  try{const a=new Audio(url);a.volume=0.7;a.play().catch(()=>{});}catch(e){}
+}
+function toggleMute(){
+  S.muted=!S.muted;
+  if(bgAudio){if(S.muted)bgAudio.pause();else bgAudio.play().catch(()=>{});}
+  const btn=document.getElementById('mute-btn');
+  if(btn)btn.textContent=S.muted?'🔇':'🔊';
+}
+function startBgMusic(){
+  const url=(S.db.sounds||{}).bgMusic;
+  if(bgAudio){bgAudio.pause();bgAudio=null;}
+  if(!url||S.muted)return;
+  try{bgAudio=new Audio(url);bgAudio.loop=true;bgAudio.volume=0.35;bgAudio.play().catch(()=>{});}catch(e){}
+}
+function testSound(key){
+  const el=document.getElementById('snd-'+key);
+  if(!el||!el.value.trim())return;
+  try{new Audio(el.value.trim()).play().catch(()=>{});}catch(e){}
+}
+function doSaveSounds(){
+  const s={};
+  SND_DEFS.forEach(([k])=>{const el=document.getElementById('snd-'+k);s[k]=el?el.value.trim():'';});
+  S.db.sounds=s;save();startBgMusic();
+  flashAdmin('✅ Sonidos guardados');
+}
+
+// ─── CARD RENDER ───────────────────────────────────────────────────────────
+function cardHTML(card,qty,sm,flip){
+  if(!card)return'';
+  qty=qty||0;sm=sm||false;flip=flip||false;
+  const r=R[card.rarity]||R.comun,leg=card.rarity==='legendaria';
+  const w=sm?92:148,bw=sm?2:3;
+  const shadow=leg?'none':r.glow||'none';
+  const cls=(leg?'legend-card ':'')+(flip?'flip-in ':'');
+  const icon=leg?'⭐':card.rarity==='epica'?'💜':card.rarity==='rara'?'💚':card.rarity==='poco_comun'?'💙':'⬜';
+  const qb=qty>1?'<div style="position:absolute;top:-8px;right:-8px;background:#ff69b4;border-radius:50%;width:19px;height:19px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:bold;color:white;z-index:2">x'+qty+'</div>':'';
+  const img=card.image?'<img src="'+esc(card.image)+'" style="width:100%;height:100%;object-fit:cover;image-rendering:pixelated" onerror="this.style.display=\'none\'">':'<span style="font-size:'+(sm?24:38)+'px;opacity:.35">'+icon+'</span>';
+  const desc=sm?'':'<div style="font-size:6px;color:#777;background:#050510;border-radius:4px;padding:5px;line-height:1.7;min-height:36px;font-family:monospace">'+esc(card.description||'Sin descripción')+'</div>';
+  return '<div class="'+cls+'" style="width:'+w+'px;flex-shrink:0;border:'+bw+'px solid '+(leg?'#ff69b4':r.b)+';border-radius:8px;background:'+r.bg+';padding:'+(sm?5:9)+'px;position:relative;box-shadow:'+shadow+'">'+qb+'<div class="pf" style="font-size:'+(sm?5:7)+'px;color:'+r.tc+';text-align:center;margin-bottom:'+(sm?3:5)+'px;line-height:1.6;min-height:'+(sm?14:22)+'px;word-break:break-word">'+esc(card.title||'???')+'</div><div style="width:100%;aspect-ratio:1;background:#070712;border-radius:4px;margin-bottom:'+(sm?3:5)+'px;overflow:hidden;display:flex;align-items:center;justify-content:center;border:1px solid '+r.b+'33">'+img+'</div>'+desc+'<div class="pf" style="margin-top:'+(sm?3:5)+'px;text-align:center;font-size:5px;color:'+r.tc+';text-transform:uppercase">'+r.lbl+'</div></div>';
+}
+function mysteryCard(card){
+  const r=R[card.rarity]||R.comun;
+  return '<div style="width:148px;flex-shrink:0;border:3px solid '+r.b+'44;border-radius:8px;background:#0a0a14;padding:9px;display:flex;flex-direction:column;gap:5px">'
+    +'<div style="height:22px;background:#1a1a2e44;border-radius:3px"></div>'
+    +'<div style="width:100%;aspect-ratio:1;background:#07070f;border-radius:4px;display:flex;align-items:center;justify-content:center;border:1px solid '+r.b+'22">'
+    +'<span style="font-size:52px;opacity:.1">?</span></div>'
+    +'<div style="height:36px;background:#1a1a2e44;border-radius:4px"></div>'
+    +'<div class="pf" style="text-align:center;font-size:5px;color:'+r.tc+'55;text-transform:uppercase">'+r.lbl+'</div></div>';
+}
+
+// ─── PAGES ─────────────────────────────────────────────────────────────────
+function pageLogin(){
+  return '<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;gap:28px">'
+    +'<div style="text-align:center"><div style="font-size:56px;margin-bottom:10px">🕊️</div><div class="pf" style="font-size:15px;color:#ff69b4;margin-bottom:6px">Paloma</div><div class="pf" style="font-size:9px;color:#c084fc">Checklists</div></div>'
+    +'<div style="background:#130820;border:2px solid #ff69b433;border-radius:16px;padding:28px;width:100%;max-width:340px;display:flex;flex-direction:column;gap:14px">'
+    +'<div class="pf" style="font-size:9px;color:#f0d6ff;text-align:center">¿Quién eres? 🌸</div>'
+    +'<div style="position:relative"><input id="lpw" class="inp" type="password" placeholder="Contraseña..." onkeydown="if(event.key===\'Enter\')doLogin()" style="padding-right:40px">'
+    +'<button onclick="togglePw()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:#ff69b4">👁️</button></div>'
+    +'<div id="lerr" style="display:none;font-family:\'Press Start 2P\',monospace;font-size:8px;color:#f87171;text-align:center"></div>'
+    +'<button class="btn" onclick="doLogin()">Entrar ✨</button></div>'
+    +'<div class="pf" style="font-size:7px;color:#ff69b433;text-align:center">4 años juntos 💕</div></div>';
+}
+
+function pageChecklist(){
+  const tasks=ud().tasks||[],done=tasks.filter(t=>t.done);
+  const prog=tasks.length?Math.round(done.length/tasks.length*100):0;
+  const earnedToday=done.reduce((s,t)=>s+t.pts,0),totalPts=tasks.reduce((s,t)=>s+t.pts,0);
+  let html='<div style="max-width:580px">';
+  html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px"><div class="pf" style="font-size:11px;color:#ff69b4">✅ Mi Checklist</div><div style="text-align:right"><div class="pf" style="font-size:6px;color:#555;margin-bottom:3px">Reinicia en</div><div class="pf timer-el" style="font-size:10px;color:#fbbf24">'+S.timer+'</div></div></div>';
+  if(tasks.length>0){
+    html+='<div style="background:#130820;border:1px solid #ff69b422;border-radius:10px;padding:12px;margin-bottom:14px"><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span class="pf" style="font-size:7px;color:#c084fc">'+done.length+'/'+tasks.length+' hechas</span><span class="pf" style="font-size:7px;color:#fbbf24">+'+earnedToday+'/'+totalPts+' ⭐</span></div><div style="background:#07070f;border-radius:20px;height:7px;overflow:hidden"><div style="width:'+prog+'%;height:100%;background:linear-gradient(90deg,#ff69b4,#c084fc);border-radius:20px;transition:width .4s"></div></div></div>';
+  }
+  html+='<div style="display:flex;flex-direction:column;gap:7px;margin-bottom:14px">';
+  if(tasks.length===0){
+    html+='<div style="text-align:center;padding:32px 0"><div style="font-size:40px;margin-bottom:10px">📝</div><div class="pf" style="font-size:8px;color:#555">Añade tu primera tarea abajo</div></div>';
+  }else{
+    tasks.forEach((t,i)=>{
+      html+='<div class="fade-up" style="display:flex;align-items:center;gap:9px;background:'+(t.done?'#091409':'#130820')+';border:1px solid '+(t.done?'#4ade8033':'#ff69b422')+';border-radius:10px;padding:9px 11px;animation-delay:'+(i*40)+'ms"><div onclick="doToggleTask(\''+t.id+'\')" style="width:22px;height:22px;border-radius:4px;flex-shrink:0;cursor:pointer;border:2px solid '+(t.done?'#4ade80':'#ff69b4')+';background:'+(t.done?'#4ade80':'transparent')+';display:flex;align-items:center;justify-content:center;font-size:13px;color:#0d0618;font-weight:bold">'+(t.done?'✓':'')+'</div><span style="flex:1;font-size:13px;color:'+(t.done?'#6b7280':'#f0d6ff')+';text-decoration:'+(t.done?'line-through':'none')+'">'+esc(t.title)+'</span><span class="pf" style="font-size:7px;padding:3px 7px;background:#fbbf2422;border:1px solid #fbbf2444;border-radius:20px;color:#fbbf24;flex-shrink:0">⭐'+t.pts+'</span><button onclick="doDeleteTask(\''+t.id+'\')" style="background:none;border:none;cursor:pointer;color:#444;font-size:14px;flex-shrink:0;padding:0 2px">🗑️</button></div>';
+    });
+  }
+  html+='</div>';
+  const ptsBtns=PTS.map(p=>'<button onclick="S.selPts='+p+';renderPtsButtons()" style="border:1px solid '+(S.selPts===p?'#ff69b4':'#ff69b433')+';border-radius:6px;background:'+(S.selPts===p?'#ff69b4':'transparent')+';color:'+(S.selPts===p?'white':'#ff69b4')+';padding:4px 7px;cursor:pointer;font-size:11px;font-family:\'Press Start 2P\',monospace">'+p+'</button>').join('');
+  html+='<div style="background:#130820;border:1px solid #ff69b444;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px"><div class="pf" style="font-size:8px;color:#ff69b4">➕ Nueva tarea</div><input id="new-task-inp" class="inp" placeholder="Nombre de la tarea..." onkeydown="if(event.key===\'Enter\')doAddTask()"><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="pf" style="font-size:7px;color:#c084fc;flex-shrink:0">Puntos:</span><div id="pts-buttons" style="display:flex;gap:4px;flex-wrap:wrap">'+ptsBtns+'</div></div><button class="btn" onclick="doAddTask()">Añadir tarea</button></div></div>';
+  return html;
+}
+
+function pageTienda(){
+  let html='<div style="max-width:700px"><div class="pf" style="font-size:11px;color:#ff69b4;margin-bottom:5px">🛍️ Tienda</div><div class="pf" style="font-size:7px;color:#666;margin-bottom:20px">Abre sobres para conseguir cartas</div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:14px;margin-bottom:24px">';
+  Object.entries(SOBRES).forEach(([k,cfg])=>{
+    const can=ud().pts>=cfg.cost;
+    const probs=Object.entries(cfg.probs).map(([r,p])=>'<div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:9px;color:'+R[r].tc+';font-family:monospace">'+R[r].lbl+'</span><span class="pf" style="font-size:5px;color:#777">'+p+'%</span></div>').join('');
+    html+='<div style="background:#130820;border:2px solid '+cfg.bc+'33;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px"><div style="text-align:center"><div style="font-size:38px;margin-bottom:6px">'+cfg.icon+'</div><div class="pf" style="font-size:8px;color:#f0d6ff;margin-bottom:3px">'+cfg.lbl+'</div><div class="pf" style="font-size:6px;color:#888">'+cfg.n+' cartas'+(cfg.epic?' <span style="color:#c084fc">· épica grtda.</span>':'')+'</div></div><div style="background:#07070f;border-radius:8px;padding:8px"><div class="pf" style="font-size:5px;color:#555;margin-bottom:5px;text-align:center">Probabilidades</div>'+probs+'</div><button class="btn" onclick="doBuyPack(\''+k+'\')" '+(can?'':'disabled')+' style="background:'+(can?cfg.gr:'undefined')+';font-size:9px">⭐ '+cfg.cost+' pts</button>'+(!can?'<div class="pf" style="font-size:5px;color:#f87171;text-align:center">Faltan '+(cfg.cost-ud().pts)+' pts</div>':'')+'</div>';
+  });
+  html+='</div>';
+  if(S.pack){
+    const p=S.pack;
+    const slots=p.cards.map((c,i)=>i<p.revealed?'<div class="flip-in">'+cardHTML(c,0,false,false)+'</div>':'<div class="blink" style="width:148px;background:#07070f;border:2px solid #ff69b422;border-radius:8px;display:flex;align-items:center;justify-content:center;aspect-ratio:.67"><span style="font-size:36px">🎴</span></div>').join('');
+    const closeBtn=p.revealed>=p.cards.length?'<button class="btn" onclick="S.pack=null;render()" style="width:100%;margin-top:8px">¡Genial! 🌸</button>':'<div class="pf" style="text-align:center;font-size:7px;color:#888;margin-top:8px">Revelando...</div>';
+    html+='<div class="overlay"><div style="background:#130820;border:2px solid #ff69b4;border-radius:20px;padding:24px;max-width:620px;width:100%;max-height:90vh;overflow-y:auto"><div class="pf" style="font-size:11px;color:#ff69b4;text-align:center;margin-bottom:6px">'+SOBRES[p.type].icon+' ¡Cartas obtenidas!</div><div id="pack-cards" style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:12px">'+slots+'</div>'+closeBtn+'</div></div>';
+  }
+  html+='</div>';
+  return html;
+}
+
+function pageColeccion(){
+  const col=ud().col||{},pool=S.db.cards;
+  const owned=pool.filter(c=>(col[c.id]||0)>0).length;
+  const filtered=S.rarFilt==='all'?pool:pool.filter(c=>c.rarity===S.rarFilt);
+  const filters=[['all','Todas','#f0d6ff']].concat(Object.entries(R).map(([k,v])=>[k,v.lbl,v.tc])).map(([k,l,c])=>'<button onclick="S.rarFilt=\''+k+'\';render()" style="border:1px solid '+(S.rarFilt===k?c:'#ff69b433')+';border-radius:20px;background:'+(S.rarFilt===k?c+'22':'transparent')+';color:'+(S.rarFilt===k?c:'#888')+';padding:4px 10px;cursor:pointer;font-family:\'Press Start 2P\',monospace;font-size:6px">'+l+'</button>').join('');
+  let grid='';
+  if(pool.length===0){
+    grid='<div style="text-align:center;padding:40px 0"><div style="font-size:40px;margin-bottom:10px">🎴</div><div class="pf" style="font-size:9px;color:#555">El contenido se está preparando ✨</div></div>';
+  }else{
+    grid=filtered.map(c=>{
+      const q=col[c.id]||0;
+      if(q===0)return mysteryCard(c);
+      const inspectData=JSON.stringify(c).replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+      return '<div style="cursor:pointer" onclick="S.inspect='+inspectData+';render()">'+cardHTML(c,q>1?q:0,false,false)+'</div>';
+    }).join('');
+  }
+  let html='<div style="max-width:820px"><div class="pf" style="font-size:11px;color:#ff69b4;margin-bottom:4px">🃏 Mi Colección</div><div class="pf" style="font-size:7px;color:#666;margin-bottom:14px">'+owned+'/'+pool.length+' únicas</div><div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px">'+filters+'</div><div style="display:flex;flex-wrap:wrap;gap:10px">'+grid+'</div>';
+  if(S.inspect){
+    const c=S.inspect,q=(col[c.id]||0);
+    html+='<div class="overlay" onclick="S.inspect=null;render()"><div onclick="event.stopPropagation()" style="display:flex;flex-direction:column;align-items:center;gap:12px">'+cardHTML(c)+'<div class="pf" style="font-size:7px;color:#888">'+q+' en tu colección</div><button class="btn-o" onclick="S.inspect=null;render()">Cerrar</button></div></div>';
+  }
+  html+='</div>';
+  return html;
+}
+
+function pageIntercambios(){
+  const myC=ud().col||{},otC=S.db[other()].col||{},oName=USERS[other()].name;
+  const myDups=S.db.cards.filter(c=>(myC[c.id]||0)>=2);
+  const thHas=S.db.cards.filter(c=>(otC[c.id]||0)>=1);
+  const incoming=(S.db.trades||[]).filter(t=>t.to===S.user&&t.status==='pending');
+  const sent=(S.db.trades||[]).filter(t=>t.from===S.user&&t.status==='pending');
+  const gc=id=>S.db.cards.find(c=>c.id===id);
+  let html='<div style="max-width:680px"><div class="pf" style="font-size:11px;color:#ff69b4;margin-bottom:18px">🔄 Intercambios</div>';
+  if(incoming.length>0){
+    html+='<div style="margin-bottom:24px"><div class="pf" style="font-size:8px;color:#fbbf24;margin-bottom:10px">📬 '+incoming.length+' oferta'+(incoming.length>1?'s':'')+' de '+oName+'</div>';
+    incoming.forEach(tr=>{const off=gc(tr.offered),req=gc(tr.requested);if(!off||!req)return;
+      html+='<div style="background:#130820;border:1px solid #fbbf2433;border-radius:12px;padding:14px;margin-bottom:10px"><div class="pf" style="font-size:6px;color:#888;margin-bottom:10px">'+oName+' ofrece:</div><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">'+cardHTML(off,0,true)+'<span class="pf" style="font-size:14px;color:#ff69b4">⇄</span><div><div class="pf" style="font-size:6px;color:#888;margin-bottom:5px">a cambio de:</div>'+cardHTML(req,0,true)+'</div></div><div style="display:flex;gap:8px"><button class="btn" onclick="doTrade(\''+tr.id+'\',true)" style="flex:1;font-size:8px">✓ Aceptar</button><button class="btn-o" onclick="doTrade(\''+tr.id+'\',false)" style="flex:1">✗ Rechazar</button></div></div>';
+    });
+    html+='</div>';
+  }
+  if(sent.length>0){
+    html+='<div style="margin-bottom:24px"><div class="pf" style="font-size:8px;color:#c084fc;margin-bottom:10px">📤 Enviadas ('+sent.length+')</div>';
+    sent.forEach(tr=>{const off=gc(tr.offered),req=gc(tr.requested);if(!off||!req)return;
+      html+='<div style="background:#130820;border:1px solid #c084fc22;border-radius:10px;padding:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+cardHTML(off,0,true)+'<span class="pf" style="font-size:10px;color:#c084fc">⇄</span>'+cardHTML(req,0,true)+'<span class="pf" style="font-size:6px;color:#666">Esperando...</span></div>';
+    });
+    html+='</div>';
+  }
+  const myDupsHTML=myDups.length===0?'<div class="pf" style="font-size:6px;color:#555">No tienes cartas repetidas aún</div>'
+    :'<div style="display:flex;flex-wrap:wrap;gap:7px;max-height:200px;overflow-y:auto;padding:4px 0">'+myDups.map(c=>'<div onclick="S.myCard=\''+c.id+'\';render()" style="border:2px solid '+(S.myCard===c.id?'#ff69b4':'transparent')+';border-radius:9px;cursor:pointer;padding:2px">'+cardHTML(c,myC[c.id]||0,true)+'</div>').join('')+'</div>';
+  const thHasHTML=thHas.length===0?'<div class="pf" style="font-size:6px;color:#555">'+oName+' no tiene cartas aún</div>'
+    :'<div style="display:flex;flex-wrap:wrap;gap:7px;max-height:200px;overflow-y:auto;padding:4px 0">'+thHas.map(c=>'<div onclick="S.thCard=\''+c.id+'\';render()" style="border:2px solid '+(S.thCard===c.id?'#4ade80':'transparent')+';border-radius:9px;cursor:pointer;padding:2px">'+cardHTML(c,otC[c.id]||0,true)+'</div>').join('')+'</div>';
+  const myCardObj=S.myCard?S.db.cards.find(c=>c.id===S.myCard):null;
+  const thCardObj=S.thCard?S.db.cards.find(c=>c.id===S.thCard):null;
+  const preview=myCardObj&&thCardObj?'<div style="background:#07070f;border-radius:10px;padding:10px;display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;justify-content:center">'+cardHTML(myCardObj,0,true)+'<span class="pf" style="font-size:12px;color:#ff69b4">⇄</span>'+cardHTML(thCardObj,0,true)+'</div>':'';
+  html+='<div style="background:#130820;border:1px solid #ff69b422;border-radius:12px;padding:16px"><div class="pf" style="font-size:8px;color:#ff69b4;margin-bottom:14px">➕ Nueva oferta</div><div style="margin-bottom:14px"><div class="pf" style="font-size:7px;color:#c084fc;margin-bottom:8px">1. Tu carta a ofrecer (×2 o más):</div>'+myDupsHTML+'</div><div style="margin-bottom:14px"><div class="pf" style="font-size:7px;color:#c084fc;margin-bottom:8px">2. Carta que quieres de '+oName+':</div>'+thHasHTML+'</div>'+preview+'<button class="btn" onclick="doSendTrade()" '+(myCardObj&&thCardObj?'':'disabled')+'>Enviar a '+oName+' 📨</button></div></div>';
+  return html;
+}
+
+function pageOtro(){
+  const od=S.db[other()],oName=USERS[other()].name,tasks=od.tasks||[],done=tasks.filter(t=>t.done);
+  const prog=tasks.length?Math.round(done.length/tasks.length*100):0;
+  let html='<div style="max-width:580px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px"><div class="pf" style="font-size:11px;color:#ff69b4">💌 '+oName+'</div><div style="text-align:right"><div class="pf" style="font-size:6px;color:#555;margin-bottom:3px">Reinicia en</div><div class="pf timer-el" style="font-size:10px;color:#fbbf24">'+S.timer+'</div></div></div>';
+  if(tasks.length>0){
+    html+='<div style="background:#130820;border:1px solid #ff69b422;border-radius:10px;padding:12px;margin-bottom:14px"><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span class="pf" style="font-size:7px;color:#c084fc">'+done.length+'/'+tasks.length+' hechas</span><span class="pf" style="font-size:7px;color:#fbbf24">⭐ '+done.reduce((s,t)=>s+t.pts,0)+'/'+tasks.reduce((s,t)=>s+t.pts,0)+'</span></div><div style="background:#07070f;border-radius:20px;height:7px;overflow:hidden"><div style="width:'+prog+'%;height:100%;background:linear-gradient(90deg,#ff69b4,#c084fc);border-radius:20px;transition:width .4s"></div></div></div>';
+  }
+  if(tasks.length===0){
+    html+='<div style="text-align:center;padding:32px 0"><div style="font-size:40px;margin-bottom:10px">😴</div><div class="pf" style="font-size:8px;color:#555">'+oName+' no tiene tareas aún</div></div>';
+  }else{
+    tasks.forEach(t=>{
+      html+='<div style="display:flex;align-items:center;gap:9px;background:'+(t.done?'#091409':'#130820')+';border:1px solid '+(t.done?'#4ade8033':'#ff69b422')+';border-radius:10px;padding:9px 11px;margin-bottom:7px"><div style="width:22px;height:22px;border-radius:4px;flex-shrink:0;border:2px solid '+(t.done?'#4ade80':'#ff69b4')+';background:'+(t.done?'#4ade80':'transparent')+';display:flex;align-items:center;justify-content:center;font-size:13px;color:#0d0618;font-weight:bold">'+(t.done?'✓':'')+'</div><span style="flex:1;font-size:13px;color:'+(t.done?'#6b7280':'#f0d6ff')+';text-decoration:'+(t.done?'line-through':'none')+'">'+esc(t.title)+'</span><span class="pf" style="font-size:7px;padding:3px 7px;background:#fbbf2422;border:1px solid #fbbf2444;border-radius:20px;color:#fbbf24;flex-shrink:0">⭐'+t.pts+'</span></div>';
+    });
+  }
+  html+='</div>';
+  return html;
+}
+
+function pageAlbum(){return'<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:320px;gap:18px"><div style="font-size:60px">📚</div><div class="pf" style="font-size:14px;color:#ff69b4">Álbum</div><div class="pf" style="font-size:10px;color:#fbbf24;padding:8px 20px;background:#fbbf2411;border:1px solid #fbbf2444;border-radius:8px">COMING SOON</div><div class="pf" style="font-size:7px;color:#666;text-align:center;max-width:280px;line-height:1.9">Próximamente podrás organizar todas las cartas en un álbum especial ✨</div></div>'}
+
+function pageAdmin(){
+  const byR={};Object.keys(R).forEach(r=>{byR[r]=S.db.cards.filter(c=>c.rarity===r)});
+  const stats=[['Cartas',S.db.cards.length,'#ff69b4'],['Julia ⭐',S.db.julia.pts,'#ff69b4'],['Jesús ⭐',S.db.jesus.pts,'#a78bfa'],['Trades',(S.db.trades||[]).filter(t=>t.status==='pending').length,'#fbbf24']];
+  const rarOpts=Object.entries(R).map(([k,v])=>'<option value="'+k+'" '+(S.adminRarity===k?'selected':'')+'>'+v.lbl+'</option>').join('');
+  let html='<div style="min-height:100vh;padding:16px;max-width:760px;margin:0 auto"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px"><div><div class="pf" style="font-size:10px;color:#ff69b4">🔧 Admin Panel</div><div class="pf" style="font-size:6px;color:#555;margin-top:4px">Paloma Checklists</div></div><button class="btn-o" onclick="S.user=null;render()">Salir</button></div>'
+    +'<div id="admin-msg" style="display:none;background:#091409;border:1px solid #4ade80;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-family:\'Press Start 2P\',monospace;font-size:7px;color:#4ade80"></div>'
+    +'<div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap">'+stats.map(([l,v,c])=>'<div style="background:#130820;border:1px solid #ff69b422;border-radius:10px;padding:10px 14px"><div class="pf" style="font-size:6px;color:#666;margin-bottom:4px">'+l+'</div><div class="pf" style="font-size:14px;color:'+c+'">'+v+'</div></div>').join('')+'</div>'
+    +'<div style="background:#130820;border:1px solid #ff69b433;border-radius:12px;padding:16px;margin-bottom:18px"><div class="pf" style="font-size:8px;color:#ff69b4;margin-bottom:12px">'+(S.adminEditId?'✏️ Editar carta':'➕ Nueva carta')+'</div><div style="display:flex;flex-direction:column;gap:10px"><input id="af-title" class="inp" placeholder="Título*"><select id="af-rarity" class="inp" onchange="S.adminRarity=this.value">'+rarOpts+'</select><input id="af-image" class="inp" placeholder="URL de imagen (opcional)"><textarea id="af-desc" class="inp" placeholder="Descripción" rows="3"></textarea><div style="display:flex;gap:8px"><button class="btn" onclick="doAdminSave()" style="flex:1">'+(S.adminEditId?'Guardar cambios':'Añadir carta')+'</button>'+(S.adminEditId?'<button class="btn-o" onclick="S.adminEditId=null;S.adminRarity=\'comun\';render()">Cancelar</button>':'')+'</div></div></div>';
+  Object.entries(byR).forEach(([rar,cards])=>{
+    if(!cards.length)return;
+    html+='<div style="margin-bottom:16px"><div class="pf" style="font-size:7px;color:'+R[rar].tc+';margin-bottom:8px">'+R[rar].lbl+' ('+cards.length+')</div>';
+    cards.forEach(c=>{
+      html+='<div style="background:#130820;border:1px solid '+R[c.rarity].b+'44;border-radius:10px;padding:9px 11px;display:flex;align-items:center;gap:9px;margin-bottom:5px">'+(c.image?'<img src="'+esc(c.image)+'" style="width:34px;height:34px;object-fit:cover;border-radius:4px;image-rendering:pixelated;flex-shrink:0" onerror="this.style.display=\'none\'">':'<div style="width:34px;height:34px;background:#07070f;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🃏</div>')+'<div style="flex:1;min-width:0"><div class="pf" style="font-size:7px;color:#f0d6ff;margin-bottom:2px">'+esc(c.title)+'</div>'+(c.description?'<div style="font-size:11px;color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(c.description)+'</div>':'')+'</div><div style="display:flex;gap:5px;flex-shrink:0"><button onclick="doAdminEdit(\''+c.id+'\')" style="background:none;border:1px solid #4ade8033;border-radius:6px;color:#4ade80;cursor:pointer;padding:4px 7px;font-size:12px">✏️</button><button onclick="doAdminDelete(\''+c.id+'\')" style="background:none;border:1px solid #f8717133;border-radius:6px;color:#f87171;cursor:pointer;padding:4px 7px;font-size:12px">🗑️</button></div></div>';
+    });
+    html+='</div>';
+  });
+  if(!S.db.cards.length)html+='<div style="text-align:center;padding:28px 0"><div style="font-size:36px;margin-bottom:8px">🃏</div><div class="pf" style="font-size:8px;color:#555">No hay cartas — añade la primera arriba</div></div>';
+  const snds=S.db.sounds||{};
+  let soundRows='';
+  SND_DEFS.forEach(([k,l])=>{soundRows+='<div style="margin-bottom:10px"><div class="pf" style="font-size:6px;color:#c084fc;margin-bottom:4px">'+l+'</div><div style="display:flex;gap:6px"><input class="inp" id="snd-'+k+'" style="font-size:11px" placeholder="https://... (.mp3 / .ogg / .wav)" value="'+esc(snds[k]||'')+'"><button onclick="testSound(\''+k+'\')" style="flex-shrink:0;background:none;border:1px solid #a78bfa44;border-radius:6px;color:#a78bfa;cursor:pointer;padding:4px 10px;font-size:14px">▶</button></div></div>';});
+  html+='<div style="background:#130820;border:1px solid #a78bfa33;border-radius:12px;padding:16px;margin-bottom:18px"><div class="pf" style="font-size:8px;color:#a78bfa;margin-bottom:4px">🔊 Sonidos</div><div class="pf" style="font-size:6px;color:#555;margin-bottom:14px;line-height:1.8">URLs de audio (.mp3/.ogg/.wav). Usa ▶ para probar antes de guardar.</div>'+soundRows+'<button class="btn" onclick="doSaveSounds()" style="width:100%;background:linear-gradient(135deg,#7c3aed,#a78bfa)">Guardar sonidos</button></div>';
+  html+='<div style="margin-top:4px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn-g" onclick="doExport()">📦 Exportar backup</button><button class="btn-o" onclick="S.showImport=!S.showImport;render()">📥 Importar backup</button></div>';
+  if(S.showImport){html+='<div style="margin-top:12px;background:#130820;border:1px solid #4ade8033;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px"><div class="pf" style="font-size:7px;color:#4ade80">Pega el backup JSON:</div><textarea id="import-ta" class="inp" rows="5"></textarea><div style="display:flex;gap:8px"><button class="btn-g" onclick="doImport()">Importar</button><button class="btn-o" onclick="S.showImport=false;render()">Cancelar</button></div></div>';}
+  html+='<div style="margin-top:24px;padding:14px;background:#1e0a0a;border:1px solid #f8717133;border-radius:10px"><div class="pf" style="font-size:8px;color:#f87171;margin-bottom:10px">⚠️ Zona peligrosa</div><button class="btn-d" onclick="doReset()">Reset completo (conserva cartas y sonidos)</button></div></div>';
+  return html;
+}
+
+function pageMain(){
+  const uInfo=USERS[S.user];
+  const hasBgMusic=!!(S.db.sounds||{}).bgMusic;
+  const muteBtn=hasBgMusic?'<button id="mute-btn" onclick="toggleMute()" style="background:none;border:1px solid #a78bfa44;border-radius:6px;color:#a78bfa;cursor:pointer;padding:4px 8px;font-size:14px">'+(S.muted?'🔇':'🔊')+'</button>':'';
+  let pageContent='';
+  if(S.page==='checklist')pageContent=pageChecklist();
+  else if(S.page==='tienda')pageContent=pageTienda();
+  else if(S.page==='coleccion')pageContent=pageColeccion();
+  else if(S.page==='intercambios')pageContent=pageIntercambios();
+  else if(S.page==='otro')pageContent=pageOtro();
+  else if(S.page==='album')pageContent=pageAlbum();
+  const navSide=NAV.map(n=>'<button class="ns '+(S.page===n.id?'on':'')+'" onclick="S.page=\''+n.id+'\';render()"><span style="font-size:15px">'+n.ic+'</span>'+n.lbl+'</button>').join('');
+  const navBot=NAV.map(n=>'<button class="nm '+(S.page===n.id?'on':'')+'" onclick="S.page=\''+n.id+'\';render()"><span style="font-size:18px">'+n.ic+'</span>'+n.lbl+'</button>').join('');
+  return '<div style="min-height:100vh"><header style="background:#0f0620;border-bottom:2px solid #ff69b422;padding:9px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100"><div><div class="pf" style="font-size:8px;color:#ff69b4;line-height:1.9">🕊️ Paloma</div><div class="pf" style="font-size:5px;color:#c084fc">Checklists</div></div><div style="display:flex;align-items:center;gap:9px"><div style="background:#1a0a2e;border:1px solid #fbbf2444;border-radius:20px;padding:4px 11px"><span class="pf" style="font-size:9px;color:#fbbf24">⭐ '+ud().pts+'</span></div><span class="pf" style="font-size:7px;color:'+uInfo.c+'">'+uInfo.name+'</span>'+muteBtn+'<button onclick="S.user=null;S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;if(bgAudio){bgAudio.pause();bgAudio=null;}render()" style="background:none;border:1px solid #ff69b433;border-radius:6px;color:#ff69b4;cursor:pointer;padding:4px 8px;font-size:13px">✕</button></div></header><div style="display:flex"><div class="snav" style="width:186px;background:#0c0618;border-right:1px solid #ff69b411;padding:12px 8px;display:none;position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto;flex-shrink:0">'+navSide+'</div><main style="flex:1;padding:14px;overflow-y:auto;min-height:calc(100vh - 52px)" class="mpb">'+pageContent+'</main></div><nav class="bnav" style="position:fixed;bottom:0;left:0;right:0;background:#0c0618;border-top:1px solid #ff69b422;z-index:100;display:none">'+navBot+'</nav></div>';
+}
+
+// ─── RENDER ────────────────────────────────────────────────────────────────
+function render(){
+  if(S.loading){document.getElementById('app').innerHTML='<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px"><div style="font-size:48px">🕊️</div><div class="pf" style="color:#ff69b4;font-size:10px">Cargando...</div></div>';return}
+  const app=document.getElementById('app');
+  if(!S.user){app.innerHTML=pageLogin();return}
+  if(S.user==='admin'){app.innerHTML=pageAdmin();restoreAdminForm();return}
+  app.innerHTML=pageMain();
+}
+
+let _afc={title:'',rarity:'comun',image:'',desc:''};
+function restoreAdminForm(){
+  const t=document.getElementById('af-title'),r=document.getElementById('af-rarity'),im=document.getElementById('af-image'),d=document.getElementById('af-desc');
+  if(t){t.value=_afc.title;r.value=_afc.rarity;im.value=_afc.image;d.value=_afc.desc}
+}
+function flashAdmin(msg){const el=document.getElementById('admin-msg');if(el){el.textContent=msg;el.style.display='block';setTimeout(()=>{if(el)el.style.display='none'},2500);}}
+
+// ─── ACTIONS ───────────────────────────────────────────────────────────────
+function renderPtsButtons(){document.getElementById('pts-buttons').innerHTML=PTS.map(p=>'<button onclick="S.selPts='+p+';renderPtsButtons()" style="border:1px solid '+(S.selPts===p?'#ff69b4':'#ff69b433')+';border-radius:6px;background:'+(S.selPts===p?'#ff69b4':'transparent')+';color:'+(S.selPts===p?'white':'#ff69b4')+';padding:4px 7px;cursor:pointer;font-size:11px;font-family:\'Press Start 2P\',monospace">'+p+'</button>').join('')}
+function togglePw(){const i=document.getElementById('lpw');i.type=i.type==='password'?'text':'password'}
+
+function doLogin(){
+  const pw=document.getElementById('lpw').value;
+  const lerr=document.getElementById('lerr');
+  if(pw===USERS.julia.pw){S.user='julia';S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;render();startBgMusic();return}
+  if(pw===USERS.jesus.pw){S.user='jesus';S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;render();startBgMusic();return}
+  if(pw===APW){S.user='admin';S.myCard=null;S.thCard=null;S.pack=null;S.inspect=null;render();return}
+  if(lerr){lerr.textContent='Contraseña incorrecta 💔';lerr.style.display='block'}
+}
+
+function doAddTask(){
+  const inp=document.getElementById('new-task-inp');
+  const title=inp?inp.value.trim():'';
+  if(!title)return;
+  S.db[S.user].tasks.push({id:uid(),title,pts:S.selPts,done:false});
+  playSound('addTask');save();
+}
+
+function doToggleTask(id){
+  const task=S.db[S.user].tasks.find(t=>t.id===id);
+  if(!task)return;
+  task.done=!task.done;
+  if(task.done)playSound('completeTask');
+  S.db[S.user].pts=Math.max(0,S.db[S.user].pts+(task.done?task.pts:-task.pts));
+  save();
+}
+
+function doDeleteTask(id){
+  const task=S.db[S.user].tasks.find(t=>t.id===id);
+  if(task&&task.done)S.db[S.user].pts=Math.max(0,S.db[S.user].pts-task.pts);
+  S.db[S.user].tasks=S.db[S.user].tasks.filter(t=>t.id!==id);
+  save();
+}
+
+function doBuyPack(type){
+  const cfg=SOBRES[type];
+  if(ud().pts<cfg.cost)return;
+  if(!S.db.cards.length){alert('No hay cartas aún. El admin tiene que añadirlas primero ✨');return}
+  const cards=rollPack(type,S.db.cards);
+  cards.forEach(c=>{S.db[S.user].col[c.id]=(S.db[S.user].col[c.id]||0)+1});
+  S.db[S.user].pts-=cfg.cost;
+  save();
+  playSound('openPack');
+  S.pack={type,cards,revealed:0};
+  render();
+  let i=0;
+  const iv=setInterval(()=>{
+    i++;S.pack.revealed=i;
+    const card=S.pack.cards[i-1];
+    if(card)playSound(card.rarity);
+    const packCards=document.getElementById('pack-cards');
+    if(packCards){packCards.innerHTML=S.pack.cards.map((c,idx)=>idx<i?'<div class="flip-in">'+cardHTML(c,0,false,false)+'</div>':'<div class="blink" style="width:148px;background:#07070f;border:2px solid #ff69b422;border-radius:8px;display:flex;align-items:center;justify-content:center;aspect-ratio:.67"><span style="font-size:36px">🎴</span></div>').join('')}
+    if(i>=S.pack.cards.length){clearInterval(iv);const ol=document.querySelector('.overlay>div');if(ol){const b=document.createElement('button');b.className='btn';b.style.width='100%';b.style.marginTop='8px';b.textContent='¡Genial! 🌸';b.onclick=()=>{S.pack=null;render()};ol.appendChild(b)}}
+  },650);
+}
+
+function doTrade(tid,accept){
+  const tr=S.db.trades.find(t=>t.id===tid);
+  if(!tr||tr.status!=='pending')return;
+  tr.status=accept?'accepted':'rejected';
+  if(accept){
+    playSound('acceptTrade');
+    const fc=S.db[tr.from].col,tc=S.db[tr.to].col;
+    if((fc[tr.offered]||0)>0)fc[tr.offered]--;fc[tr.requested]=(fc[tr.requested]||0)+1;
+    if((tc[tr.requested]||0)>0)tc[tr.requested]--;tc[tr.offered]=(tc[tr.offered]||0)+1;
+  }
+  save();
+}
+
+function doSendTrade(){
+  if(!S.myCard||!S.thCard)return;
+  const myC=S.db[S.user].col||{},otC=S.db[other()].col||{};
+  if((myC[S.myCard]||0)<2){S.myCard=null;render();return}
+  if((otC[S.thCard]||0)<1){S.thCard=null;render();return}
+  S.db.trades.push({id:uid(),from:S.user,to:other(),offered:S.myCard,requested:S.thCard,status:'pending',ts:Date.now()});
+  playSound('requestTrade');
+  S.myCard=null;S.thCard=null;save();
+}
+
+function doAdminEdit(id){
+  const c=S.db.cards.find(c=>c.id===id);if(!c)return;
+  S.adminEditId=id;S.adminRarity=c.rarity;
+  _afc={title:c.title,rarity:c.rarity,image:c.image||'',desc:c.description||''};
+  render();window.scrollTo(0,0);
+}
+
+function doAdminSave(){
+  const t=document.getElementById('af-title'),r=document.getElementById('af-rarity'),im=document.getElementById('af-image'),d=document.getElementById('af-desc');
+  const title=t?t.value.trim():'';if(!title)return;
+  const card={id:S.adminEditId||uid(),title,rarity:r?r.value:'comun',image:im?im.value.trim():'',description:d?d.value.trim():''};
+  if(S.adminEditId){S.db.cards=S.db.cards.map(c=>c.id===S.adminEditId?card:c)}else{S.db.cards.push(card)}
+  S.adminEditId=null;S.adminRarity='comun';_afc={title:'',rarity:'comun',image:'',desc:''};save();render();
+  flashAdmin('✅ Carta guardada');
+}
+
+function doAdminDelete(id){
+  if(!confirm('¿Eliminar esta carta?'))return;
+  S.db.cards=S.db.cards.filter(c=>c.id!==id);save();render();
+}
+
+function doReset(){
+  if(!confirm('RESET TOTAL: borra puntos, tareas, colecciones y trades. Las cartas y sonidos se conservan.'))return;
+  if(!confirm('¿Seguro? No se puede deshacer.'))return;
+  const snd=S.db.sounds||{},cards=S.db.cards||[];
+  S.db={...initDB(),cards,sounds:snd};save();render();
+}
+
+function doExport(){
+  const b=new Blob([JSON.stringify(S.db,null,2)],{type:'application/json'});
+  const u=URL.createObjectURL(b),a=document.createElement('a');
+  a.href=u;a.download='paloma-backup.json';a.click();URL.revokeObjectURL(u);
+}
+
+function doImport(){
+  const ta=document.getElementById('import-ta');if(!ta)return;
+  try{
+    const d=JSON.parse(ta.value);
+    if(!d.julia||!d.jesus)throw new Error('bad');
+    S.db=d;save();S.showImport=false;render();
+    setTimeout(()=>flashAdmin('✅ Datos importados'),50);
+  }catch{alert('JSON inválido.');}
+}
+
+// ─── INIT ──────────────────────────────────────────────────────────────────
+S.loading=true;
+render();
+startSync();
+setInterval(()=>{
+  S.timer=calcTimer();
+  document.querySelectorAll('.timer-el').forEach(el=>el.textContent=S.timer);
+  try{
+    const pts=new Intl.DateTimeFormat('en-US',{timeZone:'Atlantic/Canary',hour:'numeric',minute:'numeric',second:'numeric',hour12:false}).formatToParts(new Date());
+    const h=+pts.find(p=>p.type==='hour').value,m=+pts.find(p=>p.type==='minute').value,sv=+pts.find(p=>p.type==='second').value;
+    if(h===23&&m===59&&sv===0&&S.db){
+      S.db.lastReset=canaryDate();
+      S.db.julia.tasks=(S.db.julia.tasks||[]).map(t=>({...t,done:false}));
+      S.db.jesus.tasks=(S.db.jesus.tasks||[]).map(t=>({...t,done:false}));
+      save();render();
+    }
+  }catch(e){}
+},1000);
+</script>
+</body>
+</html>
