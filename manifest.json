@@ -1,0 +1,15 @@
+{
+  "name": "Paloma Checklists",
+  "short_name": "Paloma",
+  "start_url": "./paloma-checklists.html",
+  "display": "standalone",
+  "background_color": "#0d0618",
+  "theme_color": "#ff69b4",
+  "icons": [
+    {
+      "src": "https://github.com/SusoTF74/PalomaChecklists/blob/main/Images/icono.png?raw=true",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
