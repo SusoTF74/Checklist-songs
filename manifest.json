@@ -1,6 +1,6 @@
 {
   "name": "Paloma Checklists",
-  "short_name": "Paloma",
+  "short_name": "PalomaChecklists",
   "start_url": "./paloma-checklists.html",
   "display": "standalone",
   "background_color": "#0d0618",
