@@ -143,8 +143,8 @@ function startSync(){
       const today=canaryDate();
       if(data.lastReset!==today){
         data.lastReset=today;
-        data.julia.tasks=data.julia.tasks.map(t=>({...t,done:false}));
-        data.jesus.tasks=data.jesus.tasks.map(t=>({...t,done:false}));
+        data.julia.tasks=[];
+        data.jesus.tasks=[];
       }
       S.db=data;
     }
@@ -284,7 +284,7 @@ function pageColeccion(){
   let html='<div style="max-width:820px"><div class="pf" style="font-size:11px;color:#ff69b4;margin-bottom:4px">🃏 Mi Colección</div><div class="pf" style="font-size:7px;color:#666;margin-bottom:14px">'+owned+'/'+pool.length+' únicas</div><div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px">'+filters+'</div><div style="display:flex;flex-wrap:wrap;gap:10px">'+grid+'</div>';
   if(S.inspect){
     const c=S.inspect,q=(col[c.id]||0);
-    html+='<div class="overlay" onclick="S.inspect=null;render()"><div onclick="event.stopPropagation()" style="display:flex;flex-direction:column;align-items:center;gap:12px">'+cardHTML(c)+'<div class="pf" style="font-size:7px;color:#888">'+q+' en tu colección</div><button class="btn-o" onclick="S.inspect=null;render()">Cerrar</button></div></div>';
+    html+='<div class="overlay" onclick="S.inspect=null;render()"><div onclick="event.stopPropagation()" style="display:flex;flex-direction:column;align-items:center;gap:16px"><div style="transform:scale(1.7);transform-origin:center top;margin-bottom:80px">'+cardHTML(c)+'</div><div class="pf" style="font-size:7px;color:#888">'+q+' en tu colección</div><button class="btn-o" onclick="S.inspect=null;render()">Cerrar</button></div></div>';
   }
   html+='</div>';
   return html;
@@ -540,8 +540,8 @@ setInterval(()=>{
     const h=+pts.find(p=>p.type==='hour').value,m=+pts.find(p=>p.type==='minute').value,sv=+pts.find(p=>p.type==='second').value;
     if(h===23&&m===59&&sv===0&&S.db){
       S.db.lastReset=canaryDate();
-      S.db.julia.tasks=(S.db.julia.tasks||[]).map(t=>({...t,done:false}));
-      S.db.jesus.tasks=(S.db.jesus.tasks||[]).map(t=>({...t,done:false}));
+      S.db.julia.tasks=[];
+      S.db.jesus.tasks=[];
       save();render();
     }
   }catch(e){}
